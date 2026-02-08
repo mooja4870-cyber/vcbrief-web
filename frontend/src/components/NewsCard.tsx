@@ -28,6 +28,19 @@ function scoreToTier(score: number) {
   return '관찰 필요 신호';
 }
 
+function formatPublishedAt(value: string, region?: NewsItem['region']) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  // 국내 기사는 원문 기사 시각과 맞추기 위해 KST 기준으로 고정 표기한다.
+  if (region === 'domestic') {
+    const kst = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    return `${kst.toISOString().replace('T', ' ').slice(0, 19)} KST`;
+  }
+
+  return `${date.toISOString().replace('T', ' ').slice(0, 19)} UTC`;
+}
+
 const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
   const canLink = item.url && isValidUrl(item.url) && item.link_status !== 'broken';
 
@@ -68,7 +81,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
         <div className="signal-sub-row">
           <span>{item.source}</span>
           <span className="dot">·</span>
-          <span>{item.published_at}</span>
+          <span>{formatPublishedAt(item.published_at, item.region)}</span>
           <span className="dot">·</span>
           <span>{item.domain || 'no-domain'}</span>
           <span className="signal-theme-compact">{item.top5_theme}</span>
