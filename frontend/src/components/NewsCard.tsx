@@ -29,14 +29,32 @@ function scoreToTier(score: number) {
 }
 
 function formatSourceLabel(source: string) {
-  const knownMediaPrefixes = ['뉴시스', '한국경제', '연합뉴스TV', '아이뉴스24', 'Reuters', 'CNBC', 'BBC'];
   const normalized = String(source || '').trim();
-  for (const prefix of knownMediaPrefixes) {
-    const withSpace = `${prefix} `;
-    if (normalized.startsWith(withSpace)) {
-      const section = normalized.slice(withSpace.length).trim();
-      return section ? `${prefix} | ${section}` : prefix;
-    }
+  if (!normalized) return normalized;
+
+  const exactMap: Record<string, string> = {
+    '뉴시스 경제': '뉴시스 | 경제',
+    '뉴시스 산업': '뉴시스 | 산업',
+    '뉴시스 IT·바이오': '뉴시스 | IT·바이오',
+    '한국경제 IT': '한국경제 | IT',
+    '한국경제 경제': '한국경제 | 경제',
+    '한국경제 금융': '한국경제 | 금융',
+    '연합뉴스TV 경제': '연합뉴스TV | 경제',
+    '연합뉴스TV 최신': '연합뉴스TV | 최신',
+    '아이뉴스24 IT': '아이뉴스24 | IT',
+    '아이뉴스24 경제': '아이뉴스24 | 경제',
+    'Reuters Technology': 'Reuters | Technology',
+    'Reuters Business': 'Reuters | Business',
+    'CNBC Technology': 'CNBC | Technology',
+    'CNBC World': 'CNBC | World',
+    'BBC Technology': 'BBC | Technology',
+    'BBC Business': 'BBC | Business',
+  };
+  if (exactMap[normalized]) return exactMap[normalized];
+
+  const prefixMatch = normalized.match(/^(뉴시스|한국경제|연합뉴스TV|아이뉴스24|Reuters|CNBC|BBC)\s+(.+)$/);
+  if (prefixMatch) {
+    return `${prefixMatch[1]} | ${prefixMatch[2].trim()}`;
   }
   return normalized;
 }
