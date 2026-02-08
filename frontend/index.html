@@ -1,0 +1,55 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VC Signal Brief</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Playfair+Display:ital,wght@1,600;1,700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function applyInitialTheme() {
+      var storageKey = 'theme-preference';
+      var dark = 'dark-1';
+      var light = 'light-1';
+      var allowedThemes = {
+        'dark-1': true,
+        'dark-2': true,
+        'dark-3': true,
+        'light-1': true,
+        'light-2': true,
+        'light-3': true
+      };
+      var theme = dark;
+
+      try {
+        var storedTheme = localStorage.getItem(storageKey);
+        if (storedTheme && allowedThemes[storedTheme]) {
+          theme = storedTheme;
+        } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          theme = dark;
+        } else {
+          theme = light;
+        }
+      } catch (_error) {
+        if (window.matchMedia && !window.matchMedia('(prefers-color-scheme: dark)').matches) {
+          theme = light;
+        }
+      }
+
+      var mode = theme.indexOf('dark-') === 0 ? 'dark' : 'light';
+      var variant = theme.split('-')[1] || '1';
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute('data-theme-mode', mode);
+      document.documentElement.setAttribute('data-theme-variant', variant);
+      document.documentElement.style.colorScheme = mode;
+    })();
+  </script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/index.tsx"></script>
+</body>
+</html>

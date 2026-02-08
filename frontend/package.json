@@ -1,0 +1,29 @@
+{
+  "name": "vc-brief-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "android:prepare": "npm run build && npx cap sync android",
+    "android:open": "npx cap open android",
+    "android:bundle": "npm run android:prepare && cd android && gradlew.bat bundleRelease",
+    "android:apk": "npm run android:prepare && cd android && gradlew.bat assembleRelease"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.2",
+    "@types/react": "^19.2.11",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

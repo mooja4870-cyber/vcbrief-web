@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">VC Brief</string>
+    <string name="title_activity_main">VC Brief</string>
+    <string name="package_name">com.vcbrief.app</string>
+    <string name="custom_url_scheme">com.vcbrief.app</string>
+</resources>

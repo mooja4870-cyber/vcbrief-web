@@ -1,0 +1,19 @@
+﻿services:
+  - type: web
+    name: vcbrief-web
+    runtime: node
+    buildCommand: npm install && npm run build:web
+    startCommand: npm run start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: USE_SUPABASE
+        value: 1
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
