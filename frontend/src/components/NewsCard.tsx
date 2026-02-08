@@ -28,6 +28,19 @@ function scoreToTier(score: number) {
   return '관찰 필요 신호';
 }
 
+function formatSourceLabel(source: string) {
+  const knownMediaPrefixes = ['뉴시스', '한국경제', '연합뉴스TV', '아이뉴스24', 'Reuters', 'CNBC', 'BBC'];
+  const normalized = String(source || '').trim();
+  for (const prefix of knownMediaPrefixes) {
+    const withSpace = `${prefix} `;
+    if (normalized.startsWith(withSpace)) {
+      const section = normalized.slice(withSpace.length).trim();
+      return section ? `${prefix} | ${section}` : prefix;
+    }
+  }
+  return normalized;
+}
+
 function formatPublishedAt(value: string, region?: NewsItem['region']) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
@@ -79,7 +92,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
         </div>
 
         <div className="signal-sub-row">
-          <span>{item.source}</span>
+          <span>{formatSourceLabel(item.source)}</span>
           <span className="dot">·</span>
           <span>{formatPublishedAt(item.published_at, item.region)}</span>
           <span className="dot">·</span>
