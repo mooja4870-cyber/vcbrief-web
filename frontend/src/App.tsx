@@ -1,9 +1,10 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { AppMode, BriefData, NewsItem } from './types';
 import Header from './components/Header';
 import ConclusionSection from './components/ConclusionSection';
 import NewsGrid from './components/NewsGrid';
+import BriefBackground from './plugins/BriefBackground';
 
 const API_BASE_ENV = (import.meta.env.VITE_API_BASE || '').replace(/\/+$/, '');
 const IS_NATIVE = Capacitor.isNativePlatform();
@@ -16,6 +17,10 @@ const AUTO_UPDATE_INTERVAL_MS = 30 * 60 * 1000;
 const DISPLAY_COUNT_LABEL = '\uD45C\uC2DC \uAC1C\uC218';
 const API_BASE_STORAGE_KEY = 'vcbrief.api_base';
 const MIN_GLOBAL_RATIO = 0.2;
+
+function getTodayIsoDate() {
+  return new Date().toISOString().split('T')[0];
+}
 
 function normalizeApiBase(value: string): string {
   return String(value || '').trim().replace(/\/+$/, '');
@@ -113,13 +118,49 @@ const App: React.FC = () => {
   const [data, setData] = useState<BriefData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [visibleItemCount, setVisibleItemCount] = useState<number>(20);
   const [updatingCount, setUpdatingCount] = useState(false);
   const [apiBase, setApiBase] = useState<string>(() => getInitialApiBase());
   const [apiBaseDraft, setApiBaseDraft] = useState<string>(() => getInitialApiBase());
+  const hasDataRef = useRef(false);
+  const lastFetchAtRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (data) hasDataRef.current = true;
+  }, [data]);
+
+  useEffect(() => {
+    if (!IS_NATIVE) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const cache = await BriefBackground.getCache();
+        if (cancelled) return;
+        const raw = String(cache?.json || '').trim();
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const next = normalizeBrief(parsed);
+        lastFetchAtRef.current = Number(cache?.cachedAtMs || 0) || 0;
+        setData(next);
+        setLoading(false);
+      } catch {
+        // Ignore cache errors and proceed with network fetch.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!IS_NATIVE) return;
+    BriefBackground.configure({ apiBase, enabled: true }).catch(() => {
+      // Best-effort background scheduling; app still works without it.
+    });
+  }, [apiBase]);
 
   const fetchBrief = async (itemCount: number) => {
+    const date = getTodayIsoDate();
     if (IS_NATIVE && !apiBase) {
       throw new Error('앱 설정에서 API Base URL을 입력해 주세요.');
     }
@@ -127,7 +168,7 @@ const App: React.FC = () => {
       throw new Error('실기기에서는 localhost API를 사용할 수 없습니다. API Base URL을 PC의 로컬 IP로 변경해 주세요.');
     }
     const res = await fetch(
-      `${apiBase}/api/brief?date=${selectedDate}&mode=${FIXED_MODE}&level=${FIXED_LEVEL}&itemCount=${itemCount}`,
+      `${apiBase}/api/brief?date=${date}&mode=${FIXED_MODE}&level=${FIXED_LEVEL}&itemCount=${itemCount}`,
       { cache: 'no-store' }
     );
     if (!res.ok) {
@@ -142,6 +183,7 @@ const App: React.FC = () => {
     setUpdatingCount(true);
     try {
       const next = await fetchBrief(targetCount);
+      lastFetchAtRef.current = Date.now();
       setData((prev) => {
         if (!prev) return next;
         return next.items.length >= prev.items.length ? next : prev;
@@ -157,16 +199,17 @@ const App: React.FC = () => {
     let alive = true;
 
     const fetchData = async () => {
-      setLoading(true);
+      if (!hasDataRef.current) setLoading(true);
       setError(null);
       try {
         const initial = await fetchBrief(INITIAL_ITEM_COUNT);
         if (!alive) return;
+        lastFetchAtRef.current = Date.now();
         setData(initial);
         setLoading(false);
 
         const refreshBody = {
-          date: selectedDate,
+          date: getTodayIsoDate(),
           mode: FIXED_MODE,
           level: FIXED_LEVEL,
           itemCount: PREFETCH_ITEM_COUNT,
@@ -176,10 +219,11 @@ const App: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(refreshBody),
-        })
+          })
           .then(async () => {
             const next = await fetchBrief(PREFETCH_ITEM_COUNT);
             if (!alive) return;
+            lastFetchAtRef.current = Date.now();
             setData((prev) => {
               if (!prev) return next;
               return next.items.length >= prev.items.length ? next : prev;
@@ -200,12 +244,13 @@ const App: React.FC = () => {
     return () => {
       alive = false;
     };
-  }, [apiBase, selectedDate]);
+  }, [apiBase]);
 
   useEffect(() => {
     const timerId = window.setInterval(async () => {
       try {
         const next = await fetchBrief(PREFETCH_ITEM_COUNT);
+        lastFetchAtRef.current = Date.now();
 
         setData((prev) => {
           if (!prev) return next;
@@ -216,10 +261,32 @@ const App: React.FC = () => {
       }
     }, AUTO_UPDATE_INTERVAL_MS);
 
+    const onVisible = async () => {
+      if (document.visibilityState !== 'visible') return;
+      const last = lastFetchAtRef.current || 0;
+      const overdue = Date.now() - last >= AUTO_UPDATE_INTERVAL_MS;
+      if (!overdue) return;
+      try {
+        const next = await fetchBrief(PREFETCH_ITEM_COUNT);
+        lastFetchAtRef.current = Date.now();
+        setData((prev) => {
+          if (!prev) return next;
+          return next.items.length >= prev.items.length ? next : prev;
+        });
+      } catch {
+        // Ignore resume refresh failures.
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+
     return () => {
       window.clearInterval(timerId);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
     };
-  }, [apiBase, selectedDate]);
+  }, [apiBase]);
 
   const sortedNews = useMemo(() => {
     if (!data) return [] as NewsItem[];
