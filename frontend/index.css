@@ -864,10 +864,12 @@ body {
   align-items: center;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 1px 7px;
+  padding: 1px 6px;
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
+  min-width: 20px;
+  justify-content: center;
 }
 
 .region-pill-global {

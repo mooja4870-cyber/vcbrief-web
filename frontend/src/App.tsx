@@ -367,7 +367,7 @@ const App: React.FC = () => {
 	                </h2>
 	                <div className="list-head-tools">
 	                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(20%)을 적용합니다.">
-	                    GLOBAL {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible})
+	                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible})
 	                  </span>
 	                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
 	                  <select

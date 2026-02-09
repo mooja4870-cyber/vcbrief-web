@@ -112,7 +112,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
 
         <div className="signal-sub-row">
           <span className={`region-pill ${isGlobal ? 'region-pill-global' : 'region-pill-domestic'}`}>
-            {isGlobal ? 'GLOBAL' : 'DOMESTIC'}
+            {isGlobal ? 'G' : 'D'}
           </span>
           <span>{formatSourceLabel(item.source)}</span>
           <span className="dot">·</span>
