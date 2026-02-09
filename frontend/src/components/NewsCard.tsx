@@ -74,6 +74,7 @@ function formatPublishedAt(value: string, region?: NewsItem['region']) {
 
 const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
   const canLink = item.url && isValidUrl(item.url) && item.link_status !== 'broken';
+  const isGlobal = String(item.region || '').toLowerCase() === 'global';
 
   const summaryLines = Array.isArray(item.summary_3lines)
     ? item.summary_3lines.filter(Boolean)
@@ -110,6 +111,9 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
         </div>
 
         <div className="signal-sub-row">
+          <span className={`region-pill ${isGlobal ? 'region-pill-global' : 'region-pill-domestic'}`}>
+            {isGlobal ? 'GLOBAL' : 'DOMESTIC'}
+          </span>
           <span>{formatSourceLabel(item.source)}</span>
           <span className="dot">·</span>
           <span>{formatPublishedAt(item.published_at, item.region)}</span>

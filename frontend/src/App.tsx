@@ -293,6 +293,15 @@ const App: React.FC = () => {
     return selectWithGlobalQuota(data.items, visibleItemCount);
   }, [data, visibleItemCount]);
 
+  const globalCountVisible = useMemo(
+    () => sortedNews.filter((item) => String(item?.region || '').toLowerCase() === 'global').length,
+    [sortedNews]
+  );
+  const requiredGlobalVisible = useMemo(
+    () => Math.ceil(visibleItemCount * MIN_GLOBAL_RATIO),
+    [visibleItemCount]
+  );
+
   const topItems = useMemo(() => sortedNews.slice(0, 3), [sortedNews]);
 
   if (loading) {
@@ -351,16 +360,19 @@ const App: React.FC = () => {
           <section className="xl:col-span-12 space-y-6">
             <ConclusionSection takeaways={data.takeaways_3} items={topItems} />
 
-            <section>
-              <div className="list-head">
-                <h2>
-                  Key News Signals (TOP {visibleItemCount})
-                </h2>
-                <div className="list-head-tools">
-                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
-                  <select
-                    id="signal-count"
-                    className="signal-count-select"
+	            <section>
+	              <div className="list-head">
+	                <h2>
+	                  Key News Signals (TOP {visibleItemCount})
+	                </h2>
+	                <div className="list-head-tools">
+	                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(20%)을 적용합니다.">
+	                    GLOBAL {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible})
+	                  </span>
+	                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
+	                  <select
+	                    id="signal-count"
+	                    className="signal-count-select"
                     value={visibleItemCount}
                     disabled={updatingCount}
                     onChange={(e) => {
