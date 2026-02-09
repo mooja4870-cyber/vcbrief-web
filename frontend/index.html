@@ -3,7 +3,8 @@
 	<head>
 	  <meta charset="UTF-8" />
 	  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	  <meta name="color-scheme" content="light dark" />
+	  <meta name="color-scheme" content="light dark" id="color-scheme" />
+	  <meta name="supported-color-schemes" content="light dark" />
 	  <meta name="theme-color" content="#0b1220" id="theme-color" />
 	  <title>VC Signal Brief</title>
 	  <script src="https://cdn.tailwindcss.com"></script>
@@ -46,6 +47,12 @@
 	      document.documentElement.setAttribute('data-theme-mode', mode);
 	      document.documentElement.setAttribute('data-theme-variant', variant);
 	      document.documentElement.style.colorScheme = mode;
+
+	      var colorSchemeMeta = document.getElementById('color-scheme');
+	      if (colorSchemeMeta) {
+	        // Hint the UA that we're explicitly in light/dark, which reduces "forced dark" heuristics in Chrome.
+	        colorSchemeMeta.setAttribute('content', mode);
+	      }
 
 	      var themeColorMeta = document.getElementById('theme-color');
 	      if (themeColorMeta) {

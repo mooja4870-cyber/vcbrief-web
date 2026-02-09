@@ -61,6 +61,13 @@ export const applyTheme = (themeId: ThemeId) => {
     root.setAttribute('data-theme-variant', String(variant));
     root.style.colorScheme = mode;
 
+    const colorScheme = document.querySelector<HTMLMetaElement>('meta[name="color-scheme"]');
+    if (colorScheme) {
+        // Narrow the declared scheme to the active one. This helps Chrome avoid applying "auto dark"
+        // when the user explicitly selected Light.
+        colorScheme.content = mode;
+    }
+
     // Helps mobile browsers render correct UI colors and reduces "forced dark" heuristics.
     const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     if (themeColor) {
