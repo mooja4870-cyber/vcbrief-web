@@ -16,7 +16,10 @@ function emptyBrief({ date, mode, level }) {
 
 function applyGlobalQuota(items, itemCount, ratio = 0.2) {
   const all = Array.isArray(items) ? items : [];
-  const selected = all.slice(0, itemCount);
+  // Enforce "score_total-first" ordering regardless of how the brief was stored.
+  const sorted = [...all].sort((a, b) => Number(b?.score_total || 0) - Number(a?.score_total || 0));
+
+  const selected = sorted.slice(0, itemCount);
   if (!selected.length) return selected;
 
   const required = Math.ceil(selected.length * ratio);
@@ -25,9 +28,9 @@ function applyGlobalQuota(items, itemCount, ratio = 0.2) {
   let globalCount = selected.filter((item) => String(item?.region || '').toLowerCase() === 'global').length;
   if (globalCount >= required) return selected;
 
-  const reserveGlobal = all.filter(
-    (item, idx) => idx >= itemCount && String(item?.region || '').toLowerCase() === 'global'
-  );
+  const reserveGlobal = sorted
+    .slice(itemCount)
+    .filter((item) => String(item?.region || '').toLowerCase() === 'global');
   if (!reserveGlobal.length) return selected;
 
   const replaceCandidates = selected
