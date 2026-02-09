@@ -4,13 +4,19 @@ import NewsCard from './NewsCard';
 
 interface NewsGridProps {
   items: NewsItem[];
+  quotaAddedIds?: Set<string>;
 }
 
-const NewsGrid: React.FC<NewsGridProps> = ({ items }) => {
+const NewsGrid: React.FC<NewsGridProps> = ({ items, quotaAddedIds }) => {
   return (
     <div className="signal-list">
       {items.map((item, index) => (
-        <NewsCard key={item.id} item={item} rank={index + 1} />
+        <NewsCard
+          key={item.id}
+          item={item}
+          rank={index + 1}
+          quotaAdded={Boolean(quotaAddedIds && quotaAddedIds.has(item.id))}
+        />
       ))}
     </div>
   );

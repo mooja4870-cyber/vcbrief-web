@@ -4,6 +4,7 @@ import { NewsItem } from '../types';
 interface NewsCardProps {
   item: NewsItem;
   rank: number;
+  quotaAdded?: boolean;
 }
 
 function isValidUrl(value: string) {
@@ -72,7 +73,7 @@ function formatPublishedAt(value: string, region?: NewsItem['region']) {
   return `${date.toISOString().replace('T', ' ').slice(0, 19)} UTC`;
 }
 
-const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
+const NewsCard: React.FC<NewsCardProps> = ({ item, rank, quotaAdded = false }) => {
   const canLink = item.url && isValidUrl(item.url) && item.link_status !== 'broken';
   const isGlobal = String(item.region || '').toLowerCase() === 'global';
 
@@ -111,6 +112,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank }) => {
         </div>
 
         <div className="signal-sub-row">
+          {quotaAdded && <span className="quota-pill" title="20% 해외 쿼터로 포함된 기사">Q</span>}
           <span className={`region-pill ${isGlobal ? 'region-pill-global' : 'region-pill-domestic'}`}>
             {isGlobal ? 'G' : 'D'}
           </span>

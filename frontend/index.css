@@ -715,6 +715,21 @@ body {
   white-space: nowrap;
 }
 
+.quota-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  min-width: 20px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
 .list-head-label {
   color: var(--muted);
   font-size: 12px;

@@ -293,6 +293,20 @@ const App: React.FC = () => {
     return selectWithGlobalQuota(data.items, visibleItemCount);
   }, [data, visibleItemCount]);
 
+  const naiveTopIds = useMemo(() => {
+    if (!data) return new Set<string>();
+    const sorted = [...(data.items || [])].sort((a, b) => b.score_total - a.score_total);
+    return new Set(sorted.slice(0, visibleItemCount).map((item) => item.id));
+  }, [data, visibleItemCount]);
+
+  const quotaAddedIds = useMemo(() => {
+    const out = new Set<string>();
+    for (const item of sortedNews) {
+      if (!naiveTopIds.has(item.id)) out.add(item.id);
+    }
+    return out;
+  }, [sortedNews, naiveTopIds]);
+
   const globalCountVisible = useMemo(
     () => sortedNews.filter((item) => String(item?.region || '').toLowerCase() === 'global').length,
     [sortedNews]
@@ -367,7 +381,7 @@ const App: React.FC = () => {
 	                </h2>
 	                <div className="list-head-tools">
 	                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(20%)을 적용합니다.">
-	                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible})
+	                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible}, Q+{quotaAddedIds.size})
 	                  </span>
 	                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
 	                  <select
@@ -390,11 +404,11 @@ const App: React.FC = () => {
                   {updatingCount && <span className="list-head-label">불러오는 중...</span>}
                 </div>
               </div>
-              <NewsGrid items={sortedNews} />
-            </section>
-          </section>
-        </div>
-      </main>
+	              <NewsGrid items={sortedNews} quotaAddedIds={quotaAddedIds} />
+	            </section>
+	          </section>
+	        </div>
+	      </main>
     </div>
   );
 };
