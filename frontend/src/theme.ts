@@ -60,6 +60,12 @@ export const applyTheme = (themeId: ThemeId) => {
     root.setAttribute('data-theme-mode', mode);
     root.setAttribute('data-theme-variant', String(variant));
     root.style.colorScheme = mode;
+
+    // Helps mobile browsers render correct UI colors and reduces "forced dark" heuristics.
+    const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (themeColor) {
+        themeColor.content = mode === 'dark' ? '#0b1220' : '#f8fafc';
+    }
 };
 
 export const saveThemePreference = (themeId: ThemeId) => {
