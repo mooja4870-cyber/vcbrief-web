@@ -12,7 +12,8 @@ const { createUsageStatsCollector } = require('./lib/usageStats');
 const createBriefRouter = require('./routes/brief');
 const createRefreshRouter = require('./routes/refresh');
 
-const AUTO_REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+// Default: every 5 minutes (can override with AUTO_REFRESH_INTERVAL_MS in env)
+const AUTO_REFRESH_INTERVAL_MS = Math.max(30_000, Number(process.env.AUTO_REFRESH_INTERVAL_MS || 5 * 60 * 1000));
 const AUTO_REFRESH_PARAMS = {
   mode: 'execution',
   level: '3_5',
