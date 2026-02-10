@@ -37,6 +37,13 @@ function normalizeIp(ip) {
   return s;
 }
 
+function firstXffIp(xff) {
+  if (!xff) return '';
+  const raw = Array.isArray(xff) ? xff[0] : String(xff);
+  const first = raw.split(',')[0].trim();
+  return normalizeIp(first);
+}
+
 function installAccessLogger(app, db) {
   const enabled = process.env.ACCESS_LOG_ENABLED !== '0';
   if (!enabled) return;
@@ -63,7 +70,9 @@ function installAccessLogger(app, db) {
 
       const createdAt = new Date().toISOString();
       const durationMs = Date.now() - startedAt;
-      const ip = normalizeIp(req.ip || req.socket?.remoteAddress || '');
+      const ip =
+        firstXffIp(req.headers && req.headers['x-forwarded-for']) ||
+        normalizeIp(req.ip || req.socket?.remoteAddress || '');
       const row = {
         created_at: createdAt,
         ip: ip || '(unknown)',

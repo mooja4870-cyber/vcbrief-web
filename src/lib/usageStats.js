@@ -90,6 +90,13 @@ function normalizeIp(ip) {
   return s;
 }
 
+function firstXffIp(xff) {
+  if (!xff) return '';
+  const raw = Array.isArray(xff) ? xff[0] : String(xff);
+  const first = raw.split(',')[0].trim();
+  return normalizeIp(first);
+}
+
 function createUsageStatsCollector(db, opts = {}) {
   const flushIntervalMs = Math.max(1000, Number(opts.flushIntervalMs || 10_000));
   const maxKeys = Math.max(1000, Number(opts.maxKeys || 10_000));
@@ -149,7 +156,9 @@ function createUsageStatsCollector(db, opts = {}) {
 
   return {
     recordFromRequest(req) {
-      const ip = normalizeIp(req.ip || req.socket?.remoteAddress || '');
+      const ip =
+        firstXffIp(req.headers && req.headers['x-forwarded-for']) ||
+        normalizeIp(req.ip || req.socket?.remoteAddress || '');
       const path = String(req.path || '');
       record({ ip: ip || '(unknown)', path: path || '(unknown)' });
     },
@@ -162,4 +171,3 @@ function createUsageStatsCollector(db, opts = {}) {
 }
 
 module.exports = { createUsageStatsCollector };
-
