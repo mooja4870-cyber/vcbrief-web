@@ -140,6 +140,17 @@ function getTodayIsoDate() {
 
 function startAutoRefresh(db) {
   let running = false;
+  let last = {
+    running: false,
+    last_reason: '',
+    last_date: '',
+    last_started_at: '',
+    last_completed_at: '',
+    last_ok: null,
+    last_error: '',
+    last_elapsed_ms: null,
+    last_items_count: null,
+  };
 
   const runAutoRefresh = async (reason) => {
     if (running) {
@@ -148,20 +159,36 @@ function startAutoRefresh(db) {
     }
 
     running = true;
+    last.running = true;
     const startedAt = Date.now();
     const date = getTodayIsoDate();
+    last.last_reason = reason;
+    last.last_date = date;
+    last.last_started_at = new Date().toISOString();
+    last.last_completed_at = '';
+    last.last_ok = null;
+    last.last_error = '';
+    last.last_elapsed_ms = null;
+    last.last_items_count = null;
 
     try {
       console.log(`[auto-refresh] started (${reason}) date=${date}`);
       const result = await refreshBrief({ ...AUTO_REFRESH_PARAMS, date }, db);
       const elapsed = Date.now() - startedAt;
+      last.last_ok = true;
+      last.last_elapsed_ms = elapsed;
+      last.last_items_count = Number(result?.itemsCount ?? null);
       console.log(
         `[auto-refresh] completed (${reason}) date=${date} items=${result.itemsCount} elapsed_ms=${elapsed}`
       );
     } catch (err) {
+      last.last_ok = false;
+      last.last_error = String(err?.message || err || '');
       console.error(`[auto-refresh] failed (${reason}):`, err?.message || err);
     } finally {
       running = false;
+      last.running = false;
+      last.last_completed_at = new Date().toISOString();
     }
   };
 
@@ -173,6 +200,10 @@ function startAutoRefresh(db) {
   if (typeof timer.unref === 'function') {
     timer.unref();
   }
+
+  return {
+    getStatus: () => ({ ...last, interval_ms: AUTO_REFRESH_INTERVAL_MS }),
+  };
 }
 
 async function main() {
@@ -194,7 +225,10 @@ async function main() {
 
   app.use('/api', createBriefRouter(db));
   app.use('/api', createRefreshRouter(db));
-  startAutoRefresh(db);
+  const autoRefresh = startAutoRefresh(db);
+  app.get('/api/auto-refresh/status', (req, res) => {
+    res.json({ ok: true, ...autoRefresh.getStatus() });
+  });
 
   const frontendDist = path.join(__dirname, '..', 'frontend', 'dist');
   if (fs.existsSync(frontendDist)) {
