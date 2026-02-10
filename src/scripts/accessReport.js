@@ -28,10 +28,24 @@ function padRight(s, n) {
 function parseSinceToMs(since) {
   const s = String(since || '').trim().toLowerCase();
   if (!s) return 0;
-  const m = s.match(/^(\d+)\s*([smhdw])$/);
+  const m = s.match(/^(\d+)\s*([a-z]+)$/);
   if (!m) return 0;
   const n = Math.max(0, Number(m[1]));
-  const unit = m[2];
+  const unitRaw = m[2];
+  const unit =
+    unitRaw === 's' || unitRaw === 'sec' || unitRaw === 'secs' || unitRaw === 'second' || unitRaw === 'seconds'
+      ? 's'
+      : unitRaw === 'm' || unitRaw === 'min' || unitRaw === 'mins' || unitRaw === 'minute' || unitRaw === 'minutes'
+        ? 'm'
+        : unitRaw === 'h' || unitRaw === 'hr' || unitRaw === 'hrs' || unitRaw === 'hour' || unitRaw === 'hours'
+          ? 'h'
+          : unitRaw === 'd' || unitRaw === 'day' || unitRaw === 'days'
+            ? 'd'
+            : unitRaw === 'w' || unitRaw === 'wk' || unitRaw === 'wks' || unitRaw === 'week' || unitRaw === 'weeks'
+              ? 'w'
+              : '';
+  if (!unit) return 0;
+
   const mult =
     unit === 's'
       ? 1000
@@ -60,6 +74,30 @@ function fmtIso(s) {
   if (!v) return '';
   // Keep output compact and sortable
   return v.replace('T', ' ').replace('Z', 'Z');
+}
+
+function fmtLocalWithOffset(iso) {
+  const s = String(iso || '').trim();
+  if (!s) return '';
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return '';
+
+  const yyyy = String(d.getFullYear()).padStart(4, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const HH = String(d.getHours()).padStart(2, '0');
+  const MM = String(d.getMinutes()).padStart(2, '0');
+  const SS = String(d.getSeconds()).padStart(2, '0');
+  const SSS = String(d.getMilliseconds()).padStart(3, '0');
+
+  // JS returns minutes behind UTC (e.g. KST => -540), flip the sign for display.
+  const offsetMin = -d.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? '+' : '-';
+  const abs = Math.abs(offsetMin);
+  const offH = String(Math.floor(abs / 60)).padStart(2, '0');
+  const offM = String(abs % 60).padStart(2, '0');
+
+  return `${yyyy}-${mm}-${dd} ${HH}:${MM}:${SS}.${SSS} ${sign}${offH}:${offM}`;
 }
 
 function sortTop(map) {
@@ -282,7 +320,15 @@ async function reportSupabaseDailyUsage(db, opts, fromIso, toIso) {
         .map(([path, cnt]) => ({ path, cnt, last_at: '' }))
     : [];
 
-  return { kind: 'supabase (daily_briefs usage fallback)', totalLogs, topIps, byPath: byPathRows };
+  return {
+    kind: 'supabase (daily_briefs usage fallback)',
+    range_granularity: 'day',
+    range_from_date: fromDate,
+    range_to_date: toDate,
+    totalLogs,
+    topIps,
+    byPath: byPathRows,
+  };
 }
 
 function printReport(r, opts, fromIso, toIso) {
@@ -291,6 +337,16 @@ function printReport(r, opts, fromIso, toIso) {
   console.log(`db_kind=${r.kind}`);
   console.log(`range_from=${fromIso || '(none)'}`);
   console.log(`range_to=${toIso || '(none)'}`);
+  if (fromIso) console.log(`range_from_local=${fmtLocalWithOffset(fromIso) || '(invalid)'}`);
+  if (toIso) console.log(`range_to_local=${fmtLocalWithOffset(toIso) || '(invalid)'}`);
+  if (r.range_granularity) console.log(`range_granularity=${r.range_granularity}`);
+  if (r.range_from_date) console.log(`range_from_date=${r.range_from_date}`);
+  if (r.range_to_date) console.log(`range_to_date=${r.range_to_date}`);
+  if (String(r.kind || '').includes('daily_briefs usage fallback')) {
+    console.log(
+      'note=usage_fallback_is_daily_aggregate (sub-day --since will not change totals; run supabase/schema.sql to enable access_logs for exact ranges)'
+    );
+  }
   if (opts.ip) console.log(`filter_ip=${opts.ip}`);
   console.log(`total_logs=${r.totalLogs}`);
   console.log(`unique_ips_in_top=${r.topIps.length}`);
