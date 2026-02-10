@@ -7,6 +7,17 @@ interface NewsCardProps {
   quotaAdded?: boolean;
 }
 
+const KST_FORMATTER = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
+
 function isValidUrl(value: string) {
   try {
     new URL(value);
@@ -64,13 +75,10 @@ function formatPublishedAt(value: string, region?: NewsItem['region']) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  // 국내 기사는 원문 기사 시각과 맞추기 위해 KST 기준으로 고정 표기한다.
-  if (region === 'domestic') {
-    const kst = new Date(date.getTime() + (9 * 60 * 60 * 1000));
-    return `${kst.toISOString().replace('T', ' ').slice(0, 19)} KST`;
-  }
-
-  return `${date.toISOString().replace('T', ' ').slice(0, 19)} UTC`;
+  // Keep the UI consistent: show all timestamps in KST so "시간순" is visually obvious.
+  // Using Intl with an explicit timezone avoids double-shifting even if input includes an offset.
+  const kst = KST_FORMATTER.format(date);
+  return `${kst} KST`;
 }
 
 const NewsCard: React.FC<NewsCardProps> = ({ item, rank, quotaAdded = false }) => {
@@ -112,7 +120,7 @@ const NewsCard: React.FC<NewsCardProps> = ({ item, rank, quotaAdded = false }) =
         </div>
 
         <div className="signal-sub-row">
-          {quotaAdded && <span className="quota-pill" title="20% 해외 쿼터로 포함된 기사">Q</span>}
+          {quotaAdded && <span className="quota-pill" title="33.33% 해외 쿼터로 포함된 기사">Q</span>}
           <span className={`region-pill ${isGlobal ? 'region-pill-global' : 'region-pill-domestic'}`}>
             {isGlobal ? 'G' : 'D'}
           </span>
