@@ -7,6 +7,7 @@ require('dotenv').config();
 const { openDb } = require('./db/sqlite');
 const { initSchema } = require('./db/init');
 const { refreshBrief } = require('./jobs/refresh');
+const { createUsageStatsCollector } = require('./lib/usageStats');
 
 const createBriefRouter = require('./routes/brief');
 const createRefreshRouter = require('./routes/refresh');
@@ -17,6 +18,111 @@ const AUTO_REFRESH_PARAMS = {
   level: '3_5',
   itemCount: 100,
 };
+
+function parseTrustProxy(value) {
+  if (value == null || value === '') return 1;
+  const v = String(value).trim().toLowerCase();
+  if (v === 'true') return true;
+  if (v === 'false') return false;
+  const n = Number(v);
+  if (Number.isFinite(n)) return n;
+  return value;
+}
+
+function normalizeIp(ip) {
+  const s = String(ip || '').trim();
+  if (!s) return '';
+  // Typical Express values: "::1", "::ffff:1.2.3.4"
+  if (s.startsWith('::ffff:')) return s.slice('::ffff:'.length);
+  return s;
+}
+
+function installAccessLogger(app, db) {
+  const enabled = process.env.ACCESS_LOG_ENABLED !== '0';
+  if (!enabled) return;
+
+  const usage = createUsageStatsCollector(db, {
+    flushIntervalMs: process.env.USAGE_FLUSH_MS ? Number(process.env.USAGE_FLUSH_MS) : 10_000,
+  });
+
+  let supabaseDisabled = false;
+
+  app.use((req, res, next) => {
+    // Only log API traffic; skip health checks to reduce noise.
+    const url = String(req.originalUrl || '');
+    if (!url.startsWith('/api/') || url === '/api/health') return next();
+
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      // Always collect daily usage stats (works even without extra tables).
+      try {
+        usage.recordFromRequest(req);
+      } catch {
+        // ignore
+      }
+
+      const createdAt = new Date().toISOString();
+      const durationMs = Date.now() - startedAt;
+      const ip = normalizeIp(req.ip || req.socket?.remoteAddress || '');
+      const row = {
+        created_at: createdAt,
+        ip: ip || '(unknown)',
+        method: String(req.method || ''),
+        path: String(req.path || ''),
+        url,
+        status: Number(res.statusCode || 0),
+        duration_ms: Math.max(0, Math.floor(durationMs)),
+        user_agent: String(req.headers['user-agent'] || ''),
+        referer: String(req.headers.referer || req.headers.referrer || ''),
+        x_forwarded_for: String(req.headers['x-forwarded-for'] || ''),
+      };
+
+      if (db.__kind === 'supabase') {
+        if (supabaseDisabled) return;
+        void db.raw
+          .from('access_logs')
+          .insert(row)
+          .then(({ error }) => {
+            if (!error) return;
+            const msg = String(error.message || error || '');
+            if (msg.toLowerCase().includes('access_logs') && msg.toLowerCase().includes('schema cache')) {
+              supabaseDisabled = true;
+              console.warn(
+                '[access-log] disabled: Supabase table "access_logs" is missing. Run supabase/schema.sql to enable.'
+              );
+              return;
+            }
+            console.error('[access-log] insert failed:', error.message || error);
+          })
+          .catch((err) => console.error('[access-log] insert failed:', err?.message || err));
+        return;
+      }
+
+      // sqlite
+      const { run } = require('./db/sqlite');
+      void run(
+        db,
+        `INSERT INTO access_logs
+          (created_at, ip, method, path, url, status, duration_ms, user_agent, referer, x_forwarded_for)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          row.created_at,
+          row.ip,
+          row.method,
+          row.path,
+          row.url,
+          row.status,
+          row.duration_ms,
+          row.user_agent,
+          row.referer,
+          row.x_forwarded_for,
+        ]
+      ).catch((err) => console.error('[access-log] insert failed:', err?.message || err));
+    });
+
+    next();
+  });
+}
 
 function getTodayIsoDate() {
   return new Date().toISOString().split('T')[0];
@@ -61,6 +167,7 @@ function startAutoRefresh(db) {
 
 async function main() {
   const app = express();
+  app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
 
@@ -70,6 +177,8 @@ async function main() {
   const db = await openDb(dbPath);
   await initSchema(db);
   console.log(`[db] connected using ${db.__kind}`);
+
+  installAccessLogger(app, db);
 
   app.get('/api/health', (req, res) => res.json({ ok: true }));
 
@@ -96,4 +205,3 @@ main().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
 });
-

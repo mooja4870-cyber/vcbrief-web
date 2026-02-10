@@ -7,7 +7,9 @@
     "dev": "node src/server.js",
     "start": "node src/server.js",
     "build:web": "npm --prefix frontend install && npm --prefix frontend run build",
-    "migrate:supabase": "node src/scripts/migrateSqliteToSupabase.js"
+    "migrate:supabase": "node src/scripts/migrateSqliteToSupabase.js",
+    "report:links": "node src/scripts/linkStatusReport.js",
+    "report:access": "node src/scripts/accessReport.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.95.3",

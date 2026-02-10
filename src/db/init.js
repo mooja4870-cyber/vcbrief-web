@@ -2,14 +2,21 @@
 
 async function initSchema(db) {
   if (db.__kind === 'supabase') {
-    const [{ error: articlesErr }, { error: briefsErr }] = await Promise.all([
+    const [{ error: articlesErr }, { error: briefsErr }, { error: accessErr }] = await Promise.all([
       db.raw.from('articles').select('id').limit(1),
       db.raw.from('daily_briefs').select('id').limit(1),
+      db.raw.from('access_logs').select('id').limit(1),
     ]);
 
     if (articlesErr || briefsErr) {
       throw new Error(
         'Supabase tables are missing. Run supabase/schema.sql in Supabase SQL Editor, then restart the server.'
+      );
+    }
+    if (accessErr) {
+      // Keep the server running even if access logging isn't set up yet.
+      console.warn(
+        '[db] WARNING: Supabase table "access_logs" is missing. Run supabase/schema.sql to enable IP access logging.'
       );
     }
     return;
@@ -50,6 +57,28 @@ async function initSchema(db) {
     );
     `
   );
+
+  await run(
+    db,
+    `
+    CREATE TABLE IF NOT EXISTS access_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL,
+      ip TEXT NOT NULL,
+      method TEXT NOT NULL,
+      path TEXT NOT NULL,
+      url TEXT NOT NULL,
+      status INTEGER NOT NULL,
+      duration_ms INTEGER NOT NULL,
+      user_agent TEXT,
+      referer TEXT,
+      x_forwarded_for TEXT
+    );
+    `
+  );
+
+  await run(db, `CREATE INDEX IF NOT EXISTS idx_access_logs_created_at ON access_logs(created_at);`);
+  await run(db, `CREATE INDEX IF NOT EXISTS idx_access_logs_ip_created_at ON access_logs(ip, created_at);`);
 }
 
 module.exports = { initSchema };
