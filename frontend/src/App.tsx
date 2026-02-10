@@ -16,7 +16,10 @@ const PREFETCH_ITEM_COUNT = 100;
 const AUTO_UPDATE_INTERVAL_MS = 30 * 60 * 1000;
 const DISPLAY_COUNT_LABEL = '\uD45C\uC2DC \uAC1C\uC218';
 const API_BASE_STORAGE_KEY = 'vcbrief.api_base';
-const MIN_GLOBAL_RATIO = 0.2;
+const SORT_MODE_STORAGE_KEY = 'vcbrief.sort_mode';
+const MIN_GLOBAL_RATIO = 1 / 3;
+
+type SortMode = 'importance' | 'time';
 
 function getTodayIsoDate() {
   return new Date().toISOString().split('T')[0];
@@ -24,6 +27,12 @@ function getTodayIsoDate() {
 
 function normalizeApiBase(value: string): string {
   return String(value || '').trim().replace(/\/+$/, '');
+}
+
+function getSavedSortMode(): SortMode {
+  if (typeof window === 'undefined') return 'importance';
+  const raw = String(window.localStorage.getItem(SORT_MODE_STORAGE_KEY) || '').trim().toLowerCase();
+  return raw === 'time' ? 'time' : 'importance';
 }
 
 function isLoopbackApiBase(value: string): boolean {
@@ -68,8 +77,29 @@ function normalizeRegion(value: string | undefined): 'domestic' | 'global' {
   return String(value || '').trim().toLowerCase() === 'global' ? 'global' : 'domestic';
 }
 
-function selectWithGlobalQuota(items: NewsItem[], count: number): NewsItem[] {
-  const sorted = [...items].sort((a, b) => b.score_total - a.score_total);
+function publishedAtMs(value: string | undefined): number {
+  const t = Date.parse(String(value || ''));
+  return Number.isFinite(t) ? t : 0;
+}
+
+function sortForMode(items: NewsItem[], sortMode: SortMode): NewsItem[] {
+  if (sortMode === 'time') {
+    return [...items].sort((a, b) => {
+      const dt = publishedAtMs(b.published_at) - publishedAtMs(a.published_at);
+      if (dt) return dt;
+      return b.score_total - a.score_total;
+    });
+  }
+
+  return [...items].sort((a, b) => {
+    const ds = b.score_total - a.score_total;
+    if (ds) return ds;
+    return publishedAtMs(b.published_at) - publishedAtMs(a.published_at);
+  });
+}
+
+function selectWithGlobalQuota(items: NewsItem[], count: number, sortMode: SortMode): NewsItem[] {
+  const sorted = sortForMode(items, sortMode);
   const initial = sorted.slice(0, count);
   if (initial.length <= 1) return initial;
 
@@ -79,16 +109,31 @@ function selectWithGlobalQuota(items: NewsItem[], count: number): NewsItem[] {
   let globalCount = initial.filter((item) => normalizeRegion(item.region) === 'global').length;
   if (globalCount >= requiredGlobal) return initial;
 
+  const selectedIds = new Set(initial.map((item) => item.id));
   const reserveGlobal = sorted.filter(
-    (item) => !initial.includes(item) && normalizeRegion(item.region) === 'global'
+    (item) => !selectedIds.has(item.id) && normalizeRegion(item.region) === 'global'
   );
   if (!reserveGlobal.length) return initial;
 
   const selected = [...initial];
-  const replaceCandidates = selected
-    .map((item, idx) => ({ item, idx }))
-    .filter(({ item }) => normalizeRegion(item.region) !== 'global')
-    .sort((a, b) => a.item.score_total - b.item.score_total);
+  const replaceCandidates =
+    sortMode === 'time'
+      ? selected
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => normalizeRegion(item.region) !== 'global')
+          .sort((a, b) => {
+            const dt = publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
+            if (dt) return dt;
+            return a.item.score_total - b.item.score_total;
+          })
+      : selected
+          .map((item, idx) => ({ item, idx }))
+          .filter(({ item }) => normalizeRegion(item.region) !== 'global')
+          .sort((a, b) => {
+            const ds = a.item.score_total - b.item.score_total;
+            if (ds) return ds;
+            return publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
+          });
 
   let reserveIdx = 0;
   for (const candidate of replaceCandidates) {
@@ -99,7 +144,7 @@ function selectWithGlobalQuota(items: NewsItem[], count: number): NewsItem[] {
     globalCount += 1;
   }
 
-  return selected.sort((a, b) => b.score_total - a.score_total);
+  return sortForMode(selected, sortMode);
 }
 
 function normalizeBrief(data: any): BriefData {
@@ -120,10 +165,20 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [visibleItemCount, setVisibleItemCount] = useState<number>(20);
   const [updatingCount, setUpdatingCount] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>(() => getSavedSortMode());
   const [apiBase, setApiBase] = useState<string>(() => getInitialApiBase());
   const [apiBaseDraft, setApiBaseDraft] = useState<string>(() => getInitialApiBase());
   const hasDataRef = useRef(false);
   const lastFetchAtRef = useRef<number>(0);
+
+  const setSortModePersist = (next: SortMode) => {
+    setSortMode(next);
+    try {
+      window.localStorage.setItem(SORT_MODE_STORAGE_KEY, next);
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
     if (data) hasDataRef.current = true;
@@ -290,14 +345,14 @@ const App: React.FC = () => {
 
   const sortedNews = useMemo(() => {
     if (!data) return [] as NewsItem[];
-    return selectWithGlobalQuota(data.items, visibleItemCount);
-  }, [data, visibleItemCount]);
+    return selectWithGlobalQuota(data.items, visibleItemCount, sortMode);
+  }, [data, visibleItemCount, sortMode]);
 
   const naiveTopIds = useMemo(() => {
     if (!data) return new Set<string>();
-    const sorted = [...(data.items || [])].sort((a, b) => b.score_total - a.score_total);
+    const sorted = sortForMode(data.items || [], sortMode);
     return new Set(sorted.slice(0, visibleItemCount).map((item) => item.id));
-  }, [data, visibleItemCount]);
+  }, [data, visibleItemCount, sortMode]);
 
   const quotaAddedIds = useMemo(() => {
     const out = new Set<string>();
@@ -380,9 +435,26 @@ const App: React.FC = () => {
 	                  Key News Signals (TOP {visibleItemCount})
 	                </h2>
 	                <div className="list-head-tools">
-	                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(20%)을 적용합니다.">
-	                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible}, Q+{quotaAddedIds.size})
-	                  </span>
+		                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(33.33%)을 적용합니다.">
+		                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible}, Q+{quotaAddedIds.size})
+		                  </span>
+                    <span className="list-head-label">정렬</span>
+                    <div className="segment-group" role="group" aria-label="정렬">
+                      <button
+                        type="button"
+                        className={`segment-btn ${sortMode === 'time' ? 'segment-btn-active' : ''}`}
+                        onClick={() => setSortModePersist('time')}
+                      >
+                        시간순
+                      </button>
+                      <button
+                        type="button"
+                        className={`segment-btn ${sortMode === 'importance' ? 'segment-btn-active' : ''}`}
+                        onClick={() => setSortModePersist('importance')}
+                      >
+                        중요도순
+                      </button>
+                    </div>
 	                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
 	                  <select
 	                    id="signal-count"

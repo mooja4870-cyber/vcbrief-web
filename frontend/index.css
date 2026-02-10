@@ -1181,6 +1181,7 @@ body {
 
   .list-head-tools {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .summary-line-row {
