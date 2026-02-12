@@ -20,6 +20,7 @@ const RSS_SOURCES = [
   { name: '디지털데일리', url: 'https://www.ddaily.co.kr/rss.xml', region: 'domestic' },
   { name: '중소벤처기업부 보도자료', url: 'https://mss.go.kr/rss/smba/board/86.do', region: 'domestic', maxItems: 4 },
   { name: '중소벤처기업부 사업공고', url: 'https://mss.go.kr/rss/smba/board/310.do', region: 'domestic', maxItems: 4 },
+  { name: '머니투데이', url: 'https://rss.mt.co.kr/mt_news.xml', region: 'domestic', maxItems: 6 },
   { name: 'KoreaTechToday', url: 'https://www.koreatechtoday.com/feed', region: 'domestic' },
   { name: 'KoreaTechDesk', url: 'https://www.koreatechdesk.com/feed', region: 'domestic' },
   { name: 'Reuters Technology', url: 'https://feeds.reuters.com/reuters/technologyNews', region: 'global' },
@@ -46,6 +47,8 @@ const RSS_SOURCES = [
   { name: 'Private Equity Wire', url: 'https://www.privateequitywire.co.uk/feed', region: 'global' },
   { name: 'Y Combinator Blog', url: 'https://www.ycombinator.com/blog/rss', region: 'global' },
   { name: 'Lightspeed Venture Partners', url: 'https://lsvp.com/feed', region: 'global' },
+  { name: 'McKinsey', url: 'https://www.mckinsey.com/rss', region: 'global', maxItems: 6 },
+  { name: 'a16z Podcast', url: 'https://feeds.simplecast.com/JGE3yC0V', region: 'global', maxItems: 6 },
 ];
 
 function decodeHtml(str) {
