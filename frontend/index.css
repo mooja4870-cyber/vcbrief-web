@@ -800,6 +800,16 @@ body {
   color: var(--chip-text);
 }
 
+.industry-banner {
+  text-align: center;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 0 4px;
+  letter-spacing: 0.05em;
+  opacity: 0.9;
+}
+
 .signal-theme {
   color: var(--chip-theme-text);
   border-color: var(--accent-border-strong);

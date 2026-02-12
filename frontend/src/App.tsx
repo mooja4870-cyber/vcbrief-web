@@ -427,6 +427,9 @@ const App: React.FC = () => {
       <main className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <section className="xl:col-span-12 space-y-6">
+            <div className="industry-banner">
+              Providing Market Signals for Bio, AI, SaaS, and Future Tech
+            </div>
             <ConclusionSection takeaways={data.takeaways_3} items={topItems} />
 
 	            <section>
