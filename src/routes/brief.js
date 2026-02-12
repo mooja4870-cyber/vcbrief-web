@@ -14,7 +14,7 @@ function emptyBrief({ date, mode, level }) {
   };
 }
 
-function applyGlobalQuota(items, itemCount, ratio = 0.2) {
+function applyGlobalQuota(items, itemCount, ratio = 1 / 3) {
   const all = Array.isArray(items) ? items : [];
   // Enforce "score_total-first" ordering regardless of how the brief was stored.
   const sorted = [...all].sort((a, b) => Number(b?.score_total || 0) - Number(a?.score_total || 0));
@@ -82,7 +82,7 @@ module.exports = (db) => {
               const refreshed = JSON.parse(row.json);
               return res.json({
                 ...refreshed,
-                items: applyGlobalQuota(refreshed.items, itemCount, 0.2),
+                items: applyGlobalQuota(refreshed.items, itemCount, 1 / 3),
               });
             }
           } catch {
@@ -92,7 +92,7 @@ module.exports = (db) => {
 
         return res.json({
           ...parsed,
-          items: applyGlobalQuota(parsed.items, itemCount, 0.2),
+          items: applyGlobalQuota(parsed.items, itemCount, 1 / 3),
         });
       } catch {
         return res.json(emptyBrief({ date, mode, level }));

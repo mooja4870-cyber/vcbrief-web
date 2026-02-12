@@ -10,3 +10,6 @@ frontend/dist/
 artifacts/*.apk
 frontend/android/app/*.keystore
 frontend/android/keystore.properties
+.DS_Store
+.agent/
+*.py

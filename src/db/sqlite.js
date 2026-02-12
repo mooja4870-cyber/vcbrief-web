@@ -1,5 +1,4 @@
-﻿const sqlite3 = require('sqlite3').verbose();
-const { createClient } = require('@supabase/supabase-js');
+﻿const { createClient } = require('@supabase/supabase-js');
 
 function normalizeSql(sql) {
   return String(sql || '').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -34,6 +33,10 @@ function openDb(dbPath) {
     const supabase = createSupabaseWrapper();
     if (supabase) return Promise.resolve(supabase);
   }
+
+  // Lazy-load sqlite3 so `USE_SUPABASE=1` works even when sqlite3 native bindings
+  // are not available for the current Node runtime.
+  const sqlite3 = require('sqlite3').verbose();
 
   return new Promise((resolve, reject) => {
     const db = new sqlite3.Database(dbPath, (err) => {

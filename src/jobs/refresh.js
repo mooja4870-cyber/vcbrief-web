@@ -110,11 +110,24 @@ const MIN_GLOBAL_SHARE = 0.2;
 const FINAL_DEFAULT_MAX_BY_SOURCE = Number.POSITIVE_INFINITY;
 const FINAL_MAX_BY_SOURCE = {
   '연합뉴스TV 경제': 2,
-  '연합뉴스TV 최신': 2,
 };
 
 const THEME_MIN = { '바이오/헬스케어 국산화': 1 };
 const THEME_MAX = { 'AI/딥테크 인프라': 2 };
+const VC_SIGNAL_KEYWORDS = [
+  'vc', 'venture', 'startup', 'seed', 'series a', 'series b', 'series c', 'funding', 'fundraise',
+  'ipo', 'm&a', 'acquisition', 'merger',
+  '벤처', '스타트업', '투자', '투자유치', '시드', '프리시드', '시리즈a', '시리즈b', '시리즈c',
+  '상장', '인수', '합병', '유니콘', '기업가치', '밸류에이션', '펀드', '엑싯', '회수',
+  'ai', '인공지능', 'llm', '반도체', '파운드리', '바이오', '헬스케어', '에너지', '핀테크', '보안', '블록체인',
+];
+const NON_VC_TITLE_PATTERNS = [
+  /\[(?:현장한컷|뉴스핫픽|사건현장)\]/i,
+  /(쇼트트랙|축구|야구|농구|배구|올림픽|월드컵|선수|감독)/i,
+  /(연예|드라마|영화|예능|아이돌|가수|배우|팬미팅|공연)/i,
+  /(사건사고|살인|강도|폭행|납치|실종)/i,
+  /(날씨|기상|한파|폭염|강풍|대설|호우)/i,
+];
 
 function normalizeRegion(region) {
   const v = String(region || '').trim().toLowerCase();
@@ -209,6 +222,28 @@ function deriveTheme(tags) {
   if (tags.includes('Retail') || tags.includes('Export')) return '글로벌 확장 모델';
   if (tags.includes('Web3')) return '디지털 자산/웹3.0';
   return '기타/산업 일반';
+}
+
+function containsAnyKeyword(text, keywords) {
+  return keywords.some((keyword) => text.includes(String(keyword).toLowerCase()));
+}
+
+function isClearlyNonVcTitle(title) {
+  return NON_VC_TITLE_PATTERNS.some((re) => re.test(title));
+}
+
+function isVcRelevantRaw(raw) {
+  const title = String(raw?.title || '').trim();
+  const summary = String(raw?.summary || '').trim();
+  if (!title) return false;
+  if (isClearlyNonVcTitle(title)) return false;
+
+  const haystack = `${title}\n${summary}`.toLowerCase();
+  if (containsAnyKeyword(haystack, VC_SIGNAL_KEYWORDS)) return true;
+
+  const tags = deriveTags(title);
+  const isGeneralOnly = tags.length === 1 && tags[0] === 'General';
+  return !isGeneralOnly;
 }
 
 function computeScore(breakdown) {
@@ -863,12 +898,13 @@ async function refreshBrief(params, db) {
   const candidates = rawArticles
     .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
     .slice(0, MAX_TOTAL_ITEMS);
+  const vcCandidates = candidates.filter(isVcRelevantRaw);
 
   const processed = [];
   let htmlFetchCount = 0;
   const now = new Date().toISOString();
 
-  for (const raw of candidates) {
+  for (const raw of vcCandidates) {
     const { final_url, link_status, verification_note } = await resolveFinalUrl(raw.url_original);
 
     let html = null;
@@ -1012,12 +1048,6 @@ async function refreshBrief(params, db) {
 }
 
 module.exports = { refreshBrief, normalizeParams };
-
-
-
-
-
-
 
 
 
