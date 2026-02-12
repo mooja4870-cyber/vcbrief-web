@@ -5,12 +5,14 @@ const RSS_SOURCES = [
   { name: '한국경제 경제', url: 'https://www.hankyung.com/feed/economy', region: 'domestic' },
   { name: '한국경제 금융', url: 'https://www.hankyung.com/feed/finance', region: 'domestic' },
   { name: '연합뉴스TV 경제', url: 'http://www.yonhapnewstv.co.kr/category/news/economy/feed/', region: 'domestic', maxItems: 4 },
-  { name: '연합뉴스TV 최신', url: 'http://www.yonhapnewstv.co.kr/browse/feed/', region: 'domestic', maxItems: 4 },
   { name: '뉴시스 경제', url: 'https://www.newsis.com/RSS/economy.xml', region: 'domestic' },
   { name: '뉴시스 산업', url: 'https://www.newsis.com/RSS/industry.xml', region: 'domestic' },
   { name: '뉴시스 IT·바이오', url: 'https://www.newsis.com/RSS/health.xml', region: 'domestic' },
   { name: '아이뉴스24 IT', url: 'https://www.inews24.com/rss/news_it.xml', region: 'domestic' },
   { name: '아이뉴스24 경제', url: 'https://www.inews24.com/rss/news_economy.xml', region: 'domestic' },
+  { name: '플래텀', url: 'https://platum.kr/feed', region: 'domestic' },
+  { name: '벤처스퀘어', url: 'https://venturesquare.net/feed', region: 'domestic' },
+  { name: '아웃스탠딩', url: 'https://outstanding.kr/feed', region: 'domestic' },
   { name: 'Reuters Technology', url: 'https://feeds.reuters.com/reuters/technologyNews', region: 'global' },
   { name: 'Reuters Business', url: 'https://feeds.reuters.com/reuters/businessNews', region: 'global' },
   { name: 'TechCrunch', url: 'https://techcrunch.com/feed/', region: 'global' },
@@ -21,6 +23,9 @@ const RSS_SOURCES = [
   { name: 'CNBC World', url: 'https://www.cnbc.com/id/100727362/device/rss/rss.html', region: 'global' },
   { name: 'BBC Technology', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml', region: 'global' },
   { name: 'BBC Business', url: 'https://feeds.bbci.co.uk/news/business/rss.xml', region: 'global' },
+  { name: 'Crunchbase News', url: 'https://news.crunchbase.com/feed/', region: 'global' },
+  { name: 'Sequoia Capital', url: 'https://www.sequoiacap.com/feed/', region: 'global' },
+  { name: 'NVCA', url: 'https://nvca.org/feed/', region: 'global' },
 ];
 
 function decodeHtml(str) {
