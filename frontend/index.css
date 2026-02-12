@@ -803,9 +803,9 @@ body {
 .industry-banner {
   text-align: center;
   color: var(--accent);
-  font-size: 14px;
+  font-size: 22px;
   font-weight: 500;
-  padding: 12px 0 4px;
+  padding: 2px 0;
   letter-spacing: 0.05em;
   opacity: 0.9;
 }

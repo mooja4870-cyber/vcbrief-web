@@ -119,21 +119,21 @@ function selectWithGlobalQuota(items: NewsItem[], count: number, sortMode: SortM
   const replaceCandidates =
     sortMode === 'time'
       ? selected
-          .map((item, idx) => ({ item, idx }))
-          .filter(({ item }) => normalizeRegion(item.region) !== 'global')
-          .sort((a, b) => {
-            const dt = publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
-            if (dt) return dt;
-            return a.item.score_total - b.item.score_total;
-          })
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => normalizeRegion(item.region) !== 'global')
+        .sort((a, b) => {
+          const dt = publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
+          if (dt) return dt;
+          return a.item.score_total - b.item.score_total;
+        })
       : selected
-          .map((item, idx) => ({ item, idx }))
-          .filter(({ item }) => normalizeRegion(item.region) !== 'global')
-          .sort((a, b) => {
-            const ds = a.item.score_total - b.item.score_total;
-            if (ds) return ds;
-            return publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
-          });
+        .map((item, idx) => ({ item, idx }))
+        .filter(({ item }) => normalizeRegion(item.region) !== 'global')
+        .sort((a, b) => {
+          const ds = a.item.score_total - b.item.score_total;
+          if (ds) return ds;
+          return publishedAtMs(a.item.published_at) - publishedAtMs(b.item.published_at);
+        });
 
   let reserveIdx = 0;
   for (const candidate of replaceCandidates) {
@@ -274,7 +274,7 @@ const App: React.FC = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(refreshBody),
-          })
+        })
           .then(async () => {
             const next = await fetchBrief(PREFETCH_ITEM_COUNT);
             if (!alive) return;
@@ -424,44 +424,46 @@ const App: React.FC = () => {
     <div className="terminal-screen pb-10">
       <Header />
 
-      <main className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+      <main className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 mt-1">
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <section className="xl:col-span-12 space-y-6">
-            <div className="industry-banner">
-              Providing Market Signals for Bio, AI, SaaS, and Future Tech
+            <div>
+              <div className="industry-banner">
+                Providing Market Signals for Bio, AI, SaaS, and Future Tech
+              </div>
+              <ConclusionSection takeaways={data.takeaways_3} items={topItems} />
             </div>
-            <ConclusionSection takeaways={data.takeaways_3} items={topItems} />
 
-	            <section>
-	              <div className="list-head">
-	                <h2>
-	                  Key News Signals (TOP {visibleItemCount})
-	                </h2>
-	                <div className="list-head-tools">
-		                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(33.33%)을 적용합니다.">
-		                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible}, Q+{quotaAddedIds.size})
-		                  </span>
-                    <span className="list-head-label">정렬</span>
-                    <div className="segment-group" role="group" aria-label="정렬">
-                      <button
-                        type="button"
-                        className={`segment-btn ${sortMode === 'time' ? 'segment-btn-active' : ''}`}
-                        onClick={() => setSortModePersist('time')}
-                      >
-                        시간순
-                      </button>
-                      <button
-                        type="button"
-                        className={`segment-btn ${sortMode === 'importance' ? 'segment-btn-active' : ''}`}
-                        onClick={() => setSortModePersist('importance')}
-                      >
-                        중요도순
-                      </button>
-                    </div>
-	                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
-	                  <select
-	                    id="signal-count"
-	                    className="signal-count-select"
+            <section>
+              <div className="list-head">
+                <h2>
+                  Key News Signals (TOP {visibleItemCount})
+                </h2>
+                <div className="list-head-tools">
+                  <span className="quota-badge" title="표시 개수 기준 해외 기사 최소 비율(33.33%)을 적용합니다.">
+                    G {globalCountVisible}/{visibleItemCount} (min {requiredGlobalVisible}, Q+{quotaAddedIds.size})
+                  </span>
+                  <span className="list-head-label">정렬</span>
+                  <div className="segment-group" role="group" aria-label="정렬">
+                    <button
+                      type="button"
+                      className={`segment-btn ${sortMode === 'time' ? 'segment-btn-active' : ''}`}
+                      onClick={() => setSortModePersist('time')}
+                    >
+                      시간순
+                    </button>
+                    <button
+                      type="button"
+                      className={`segment-btn ${sortMode === 'importance' ? 'segment-btn-active' : ''}`}
+                      onClick={() => setSortModePersist('importance')}
+                    >
+                      중요도순
+                    </button>
+                  </div>
+                  <label htmlFor="signal-count" className="list-head-label">{DISPLAY_COUNT_LABEL}</label>
+                  <select
+                    id="signal-count"
+                    className="signal-count-select"
                     value={visibleItemCount}
                     disabled={updatingCount}
                     onChange={(e) => {
@@ -479,11 +481,11 @@ const App: React.FC = () => {
                   {updatingCount && <span className="list-head-label">불러오는 중...</span>}
                 </div>
               </div>
-	              <NewsGrid items={sortedNews} quotaAddedIds={quotaAddedIds} />
-	            </section>
-	          </section>
-	        </div>
-	      </main>
+              <NewsGrid items={sortedNews} quotaAddedIds={quotaAddedIds} />
+            </section>
+          </section>
+        </div>
+      </main>
     </div>
   );
 };
