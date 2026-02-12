@@ -623,7 +623,7 @@ body {
 .brief-summary-block {
   border-top: 2px solid var(--line);
   border-bottom: 1px solid var(--line);
-  padding: 14px 0 10px;
+  padding: 2px 0 10px;
 }
 
 .summary-lines {
